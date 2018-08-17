@@ -16,20 +16,20 @@
 
 package com.cjwwdev.implicits
 
-import com.cjwwdev.security.encryption.{DataSecurity, SHA512}
-import play.api.libs.json.{Reads, Writes}
+import com.cjwwdev.security.deobfuscation.{DeObfuscator, DecryptionError}
+import com.cjwwdev.security.obfuscation.Obfuscator
+import com.cjwwdev.security.sha.SHA512
 
 object ImplicitDataSecurity {
-  implicit class StringOps(string: String) {
-    def encrypt: String = DataSecurity.encryptString(string)
-    def decrypt: String = DataSecurity.decryptString(string)
-
-    def decryptIntoType[T](implicit reads: Reads[T]): T = DataSecurity.decryptIntoType(string)(reads).get
-
-    def sha512: String = SHA512.encrypt(string)
+  implicit class ImplicitObfuscation[T](data: T)(implicit obfuscation: Obfuscator[T]) {
+    def encrypt: String = obfuscation.encrypt(data)
   }
 
-  implicit class GenericOps[T](typeT: T)(implicit writes: Writes[T]) {
-    def encryptType: String = DataSecurity.encryptType(typeT)(writes)
+  implicit class ImplicitDeObfuscation(data: String) {
+    def decrypt[T](implicit deObfuscation: DeObfuscator[T]): Either[T, DecryptionError] = deObfuscation.decrypt(data)
+  }
+
+  implicit class ImplicitSHA512(data: String) {
+    def sha512: String = SHA512.encrypt(data)
   }
 }

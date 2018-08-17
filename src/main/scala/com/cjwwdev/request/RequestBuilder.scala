@@ -20,14 +20,29 @@ import play.api.libs.typedmap.TypedMap
 import play.api.mvc.request.{RemoteConnection, RequestTarget}
 import play.api.mvc.{Headers, Request, RequestHeader}
 
-trait RequestBuilder {
-  def buildNewRequest[T](requestHeader : RequestHeader, requestBody : T) : Request[T] = new Request[T] {
-    override def body: T                      = requestBody
-    override def connection: RemoteConnection = requestHeader.connection
-    override def method: String               = requestHeader.method
-    override def target: RequestTarget        = requestHeader.target
-    override def version: String              = requestHeader.version
-    override def headers: Headers             = requestHeader.headers
-    override def attrs: TypedMap              = requestHeader.attrs
+import scala.annotation.implicitNotFound
+
+@implicitNotFound(
+  "No RequestBuilder found for type ${T}. Try to implement an implicit RequestBuilder for type ${T}"
+)
+trait RequestBuilder[T] {
+  def buildRequest(requestHeader: RequestHeader, requestBody: T): Request[T]
+}
+
+object RequestBuilder {
+  implicit val stringRequestBuilder: RequestBuilder[String] = new RequestBuilder[String] {
+    override def buildRequest(requestHeader: RequestHeader, requestBody: String): Request[String] = new Request[String] {
+      override def body: String                 = requestBody
+      override def connection: RemoteConnection = requestHeader.connection
+      override def method: String               = requestHeader.method
+      override def target: RequestTarget        = requestHeader.target
+      override def version: String              = requestHeader.version
+      override def headers: Headers             = requestHeader.headers
+      override def attrs: TypedMap              = requestHeader.attrs
+    }
+  }
+
+  def buildRequest[T](requestHeader: RequestHeader, body: T)(implicit requestBuilder: RequestBuilder[T]): Request[T] = {
+    requestBuilder.buildRequest(requestHeader, body)
   }
 }

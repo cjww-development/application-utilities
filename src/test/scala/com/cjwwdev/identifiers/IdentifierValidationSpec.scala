@@ -19,7 +19,7 @@ package com.cjwwdev.identifiers
 import java.util.UUID
 
 import org.scalatestplus.play.PlaySpec
-import play.api.mvc.Result
+import play.api.mvc.{Request, Result}
 import play.api.mvc.Results.Ok
 import play.api.test.FakeRequest
 import play.api.test.Helpers._
@@ -29,7 +29,7 @@ import scala.concurrent.Future
 class IdentifierValidationSpec extends PlaySpec {
   val testValidator = new IdentifierValidation {}
 
-  implicit val request = FakeRequest()
+  implicit val request: Request[_] = FakeRequest()
 
   def okFunction: Future[Result] = Future.successful(Ok)
 

@@ -19,12 +19,14 @@ package com.cjwwdev.request
 import java.time.LocalDateTime
 
 import com.cjwwdev.fixtures.TestModel
-import com.cjwwdev.security.encryption.DataSecurity
+import com.cjwwdev.security.deobfuscation.{DeObfuscation, DeObfuscator, DecryptionError}
+import com.cjwwdev.security.obfuscation.Obfuscation._
+import com.cjwwdev.security.obfuscation.{Obfuscation, Obfuscator}
 import org.scalatestplus.play.PlaySpec
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
-import play.api.libs.json.{Format, Json}
-import play.api.mvc.Result
+import play.api.libs.json.{Format, JsValue, Json, Reads}
 import play.api.mvc.Results.Ok
+import play.api.mvc.{Request, Result}
 import play.api.test.FakeRequest
 import play.api.test.Helpers._
 
@@ -34,104 +36,102 @@ class RequestParsersSpec extends PlaySpec with GuiceOneAppPerSuite {
 
   val testParsers = new RequestParsers {}
 
-  val testEncString: String = DataSecurity.encryptString("testString")
+  implicit val testModelObfuscation: Obfuscator[TestModel] = new Obfuscator[TestModel] {
+    override def encrypt(value: TestModel): String = Obfuscation.obfuscateJson(Json.toJson(value))
+  }
 
-  implicit val request = FakeRequest()
+  implicit val testModelDeObfuscation: DeObfuscator[TestModel] = new DeObfuscator[TestModel] {
+    implicit val reads: Reads[TestModel] = TestModel.standardFormat
+    override def decrypt(value: String): Either[TestModel, DecryptionError] = DeObfuscation.deObfuscate[TestModel](value)
+  }
 
-  val now                  = LocalDateTime.now
-  val testModel            = TestModel("testString", 616, now)
-  val testEncModel: String = DataSecurity.encryptType[TestModel](testModel)
-
-  val testInvalidEncModel = DataSecurity.encryptType(Json.parse(
-    """
-      |{
-      | "boolean" : true
-      |}
-    """.stripMargin
-  ))
+  val now                   = LocalDateTime.now
+  val testModel             = TestModel("testString", 616, now)
+  val testEncString: String = Obfuscation.encrypt(testModel)
 
   def okFunction[T](data: T)(implicit format: Format[T]): Future[Result] = Future.successful(Ok(Json.toJson[T](data)))
 
   "withJsonBody" should {
-    "decrypt and parse the request body into a test model to return an OK" when {
-      "the reads for test model is explicitly passed to return an OK" in {
-        implicit val request: FakeRequest[String] = FakeRequest().withBody(testEncModel)
+    "decrypt the request body and return an Ok" in {
+      implicit val request: Request[String] = FakeRequest().withBody(testEncString)
 
-        val result = testParsers.withJsonBody[TestModel](TestModel.standardFormat) { data =>
-          okFunction[TestModel](data)
-        }
-
-        status(result) mustBe OK
+      val result = testParsers.withJsonBody[TestModel] { data =>
+        okFunction[TestModel](data)
       }
+
+      status(result)        mustBe OK
+      contentAsJson(result) mustBe Json.toJson(testModel)
     }
 
-    "decrypt the request but return a bad request since the Json doesn't fit the specified type" when {
-      "the reads for the type is explicitly passed" in {
-        implicit val request: FakeRequest[String] = FakeRequest().withBody(testInvalidEncModel)
+    "return a BadRequest" when {
+      "the decrypted value can't be parsed into the desired type" in {
+        implicit val request: Request[String] = FakeRequest().withBody("invalid-string")
 
-        val result = testParsers.withJsonBody[TestModel](TestModel.standardFormat) { data =>
+        val result = testParsers.withJsonBody[TestModel] { data =>
           okFunction[TestModel](data)
         }
 
-        status(result) mustBe BAD_REQUEST
+        status(result)                                     mustBe BAD_REQUEST
+        contentAsJson(result).\("errorMessage").as[String] mustBe s"Couldn't decrypt request body on ${request.path}"
       }
-    }
 
-    "fail to decrypt the request as the encrypted string was invalid" when {
-      "the reads for the type is explicitly passed" in {
-        implicit val request: FakeRequest[String] = FakeRequest().withBody("INVALID_STRING")
+      "the decrypted value is missing a field" in {
+        implicit val request: Request[String] = FakeRequest().withBody(Obfuscation.encrypt(Json.obj(
+          "string" -> "testString",
+          "int"    -> 616
+        )))
 
-        val result = testParsers.withJsonBody[TestModel](TestModel.standardFormat) { data =>
+        val result = testParsers.withJsonBody[TestModel] { data =>
           okFunction[TestModel](data)
         }
 
-        status(result) mustBe BAD_REQUEST
-        contentAsJson(result).\("errorMessage").as[String] mustBe s"Couldn't decrypt request body on /"
+        status(result)                                     mustBe BAD_REQUEST
+        contentAsJson(result).\("errorMessage").as[String] mustBe "Decrypted json was missing a field"
+        contentAsJson(result).\("errorBody").as[JsValue]   mustBe Json.parse("""{ "dateTime" : "error.path.missing" }""")
       }
     }
   }
 
   "withEncryptedUrl" should {
     "decrypt the url and return an Ok" in {
-      val result = testParsers.withEncryptedUrl(DataSecurity.encryptString("testString")) { url =>
-        Future.successful(Ok(url))
+      implicit val request: Request[String] = FakeRequest().withBody("")
+
+      val result = testParsers.withEncryptedUrl[TestModel](testEncString) { data =>
+        okFunction[TestModel](data)
       }
 
-      status(result) mustBe OK
-      contentAsString(result) mustBe "testString"
+      status(result)        mustBe OK
+      contentAsJson(result) mustBe Json.toJson(testModel)
     }
 
-    "return a BadRequest when the url can't be decrypted" in {
-      val result = testParsers.withEncryptedUrl("testString") { url =>
-        Future.successful(Ok(url))
+    "return a BadRequest" when {
+      "the decrypted value can't be parsed into the desired type" in {
+        implicit val request: Request[String] = FakeRequest().withBody("")
+
+        val result = testParsers.withEncryptedUrl[TestModel]("invalid-string") { data =>
+          okFunction[TestModel](data)
+        }
+
+        status(result)                                     mustBe BAD_REQUEST
+        contentAsJson(result).\("errorMessage").as[String] mustBe s"Couldn't decrypt request body on ${request.path}"
       }
 
-      status(result) mustBe BAD_REQUEST
-      contentAsJson(result).\("errorMessage").as[String] mustBe "Could not decrypt given url"
-    }
-  }
+      "the decrypted value is missing a field" in {
+        implicit val request: Request[String] = FakeRequest().withBody("")
 
-  "withEncryptedUrlIntoType" should {
-    "decrypt the url into Type T" in {
-      implicit val request: FakeRequest[String] = FakeRequest().withBody("")
+        val testEncString = Obfuscation.encrypt(Json.obj(
+          "string" -> "testString",
+          "int"    -> 616
+        ))
 
-      val enc = DataSecurity.encryptType[TestModel](testModel)
+        val result = testParsers.withEncryptedUrl[TestModel](testEncString) { data =>
+          okFunction[TestModel](data)
+        }
 
-      val result = testParsers.withEncryptedUrlIntoType(enc, TestModel.standardFormat) { data =>
-        okFunction(data)
+        status(result)                                     mustBe BAD_REQUEST
+        contentAsJson(result).\("errorMessage").as[String] mustBe "Decrypted json was missing a field"
+        contentAsJson(result).\("errorBody").as[JsValue]   mustBe Json.parse("""{ "dateTime" : "error.path.missing" }""")
       }
-
-      status(result) mustBe OK
-    }
-
-    "return a BadRequest when the url can't be decrypted" in {
-      implicit val request: FakeRequest[String] = FakeRequest().withBody("")
-
-      val result = testParsers.withEncryptedUrlIntoType("testString", TestModel.standardFormat) { data =>
-        okFunction(data)
-      }
-
-      status(result) mustBe BAD_REQUEST
     }
   }
 }

@@ -17,6 +17,7 @@
 package com.cjwwdev.request
 
 import com.cjwwdev.logging.Logging
+import com.cjwwdev.request.RequestBuilder._
 import play.api.http.HttpErrorHandler
 import play.api.http.Status.{FORBIDDEN, NOT_FOUND}
 import play.api.mvc.Results.{InternalServerError, NotFound, Redirect, Status}
@@ -26,7 +27,7 @@ import play.twirl.api.Html
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
-trait FrontendRequestErrorHandler extends HttpErrorHandler with RequestBuilder with Logging {
+trait FrontendRequestErrorHandler extends HttpErrorHandler with Logging {
 
   def loginRedirect: Call
 
@@ -36,7 +37,7 @@ trait FrontendRequestErrorHandler extends HttpErrorHandler with RequestBuilder w
 
   override def onClientError(request: RequestHeader, statusCode: Int, message: String): Future[Result] = {
     logger.error(s"[ErrorHandler] - [onClientError] - Url: ${request.uri}, status code: $statusCode")
-    implicit val req: Request[String] = buildNewRequest[String](request, "")
+    implicit val req: Request[String] = buildRequest[String](request, "")
     statusCode match {
       case NOT_FOUND  => Future(NotFound(notFoundView))
       case FORBIDDEN  => Future(Redirect(loginRedirect))
@@ -47,7 +48,7 @@ trait FrontendRequestErrorHandler extends HttpErrorHandler with RequestBuilder w
   override def onServerError(request: RequestHeader, exception: Throwable): Future[Result] = {
     logger.error(s"[ErrorHandler] - [onServerError] - exception : $exception")
     exception.printStackTrace()
-    implicit val req: Request[String] = buildNewRequest[String](request, "")
+    implicit val req: Request[String] = buildRequest[String](request, "")
     Future(InternalServerError(serverErrorView))
   }
 }
