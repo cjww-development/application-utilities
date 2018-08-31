@@ -28,7 +28,11 @@ trait ConfigurationLoader {
 
   def get[T](key: String)(implicit configLoader: ConfigLoader[T]): T = configLoader.load(loadedConfig.underlying, key)
 
-  def getServiceUrl(service: String): String = loadedConfig.get[String](s"$configRoot.$service.domain")
+  def getServiceUrl(service: String)(implicit configLoader: ConfigLoader[String]): String = {
+    configLoader.load(loadedConfig.underlying, s"$configRoot.$service.domain")
+  }
 
-  def getServiceId(service: String): String = loadedConfig.get[String](s"$configRoot.$service.application-id")
+  def getServiceId(service: String)(implicit configLoader: ConfigLoader[String]): String = {
+    configLoader.load(loadedConfig.underlying, s"$configRoot.$service.application-id")
+  }
 }

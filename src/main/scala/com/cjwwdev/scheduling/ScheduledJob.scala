@@ -25,7 +25,7 @@ import scala.concurrent.{ExecutionContext, Future}
 sealed trait JobCompletionStatus
 case object JobComplete extends JobCompletionStatus
 case object JobFailed extends JobCompletionStatus
-private case object JobDisabled extends JobCompletionStatus
+case object JobDisabled extends JobCompletionStatus
 
 trait ScheduledJob extends Logging {
   val actorSystem: ActorSystem
@@ -37,12 +37,7 @@ trait ScheduledJob extends Logging {
 
   def scheduledJob: Future[JobCompletionStatus]
 
-  private def jobRunner(f: => Future[JobCompletionStatus]) =
+  private def jobRunner(f: => Future[JobCompletionStatus]) = {
     actorSystem.scheduler.schedule(initialDelay = 0.seconds, interval = interval.second)(f)
-
-  if(enabled) {
-    jobRunner(scheduledJob)
-  } else {
-    Future.successful(JobDisabled)
   }
 }
