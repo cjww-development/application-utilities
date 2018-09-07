@@ -27,7 +27,7 @@ val bTVersion : String = Try(ConfigFactory.load.getString("version")) match {
 val playImports: Seq[ModuleID] = Seq(guice)
 
 val dependencies: Seq[ModuleID] = Seq(
-  "com.typesafe.play"       % "play_2.12"           % "2.6.15",
+  "com.typesafe.play"       % "play_2.12"           % "2.6.17",
   "org.scalatestplus.play" %% "scalatestplus-play"  % "3.1.2"   % Test,
   "ch.qos.logback"          % "logback-classic"     % "1.2.3"
 )

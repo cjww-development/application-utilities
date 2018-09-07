@@ -16,7 +16,7 @@
 
 package com.cjwwdev.scheduling
 
-import akka.actor.ActorSystem
+import akka.actor.{ActorSystem, Cancellable}
 import com.cjwwdev.logging.Logging
 
 import scala.concurrent.duration._
@@ -25,7 +25,7 @@ import scala.concurrent.{ExecutionContext, Future}
 sealed trait JobCompletionStatus
 case object JobComplete extends JobCompletionStatus
 case object JobFailed extends JobCompletionStatus
-private case object JobDisabled extends JobCompletionStatus
+case object JobDisabled extends JobCompletionStatus
 
 trait ScheduledJob extends Logging {
   val actorSystem: ActorSystem
@@ -35,14 +35,7 @@ trait ScheduledJob extends Logging {
   val enabled: Boolean
   val interval: Long
 
-  def scheduledJob: Future[JobCompletionStatus]
-
-  private def jobRunner(f: => Future[JobCompletionStatus]) =
+  def jobRunner(f: => Future[JobCompletionStatus]): Cancellable = {
     actorSystem.scheduler.schedule(initialDelay = 0.seconds, interval = interval.second)(f)
-
-  if(enabled) {
-    jobRunner(scheduledJob)
-  } else {
-    Future.successful(JobDisabled)
   }
 }

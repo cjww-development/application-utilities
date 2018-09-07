@@ -14,7 +14,7 @@
  *  limitations under the License.
  */
 
-package com.cjwwdev.security.encryption
+package com.cjwwdev.security.sha
 
 import org.scalatestplus.play.PlaySpec
 

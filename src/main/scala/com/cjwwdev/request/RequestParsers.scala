@@ -16,67 +16,46 @@
 
 package com.cjwwdev.request
 
+import com.cjwwdev.logging.Logging
 import com.cjwwdev.responses.ApiResponse
-import com.cjwwdev.security.encryption.DataSecurity
-import org.slf4j.LoggerFactory
+import com.cjwwdev.security.deobfuscation.DeObfuscator
 import play.api.http.Status.BAD_REQUEST
-import play.api.libs.json.{JsError, JsSuccess, Json, Reads}
+import play.api.libs.json._
 import play.api.mvc.Results.BadRequest
 import play.api.mvc.{Request, Result}
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 import scala.language.reflectiveCalls
-import scala.util.{Failure, Success, Try}
+import scala.util.Try
 
-trait RequestParsers extends ApiResponse {
+trait RequestParsers extends ApiResponse with Logging {
 
-  private val logger = LoggerFactory.getLogger(getClass)
-
-  def withJsonBody[T](reads: Reads[T])(f: T => Future[Result])(implicit request: Request[String]): Future[Result] = {
-    Try(DataSecurity.decryptIntoType[T](request.body)(reads)) match {
-      case Success(jsResult) => jsResult match {
-        case JsSuccess(typeT,_) => f(typeT)
-        case JsError(errors)    =>
-          logger.error(s"Couldn't validate json as specified structure - ${Json.prettyPrint(JsError.toJson(errors))}")
-          withFutureJsonResponseBody(BAD_REQUEST, JsError.toJson(errors), "Couldn't validate json as specified structure") { json =>
-            Future(BadRequest(json))
-          }
-      }
-      case Failure(_) =>
-        logger.error(s"Couldn't decrypt request body on ${request.path}")
-        withFutureJsonResponseBody(BAD_REQUEST, s"Couldn't decrypt request body on ${request.path}") { json =>
+  def withJsonBody[T](f: T => Future[Result])(implicit request: Request[String], deObfuscation: DeObfuscator[T]): Future[Result] = {
+    deObfuscation.decrypt(request.body).fold(
+      data => f(data),
+      err  => Try(Json.parse(err.message)).fold(
+        _ => withFutureJsonResponseBody(BAD_REQUEST, s"Couldn't decrypt request body on ${request.path}") { json =>
+          Future(BadRequest(json))
+        },
+        jsError => withFutureJsonResponseBody(BAD_REQUEST, jsError, "Decrypted json was missing a field") { json =>
           Future(BadRequest(json))
         }
-    }
+      )
+    )
   }
 
-  def withEncryptedUrl(enc: String)(f: String => Future[Result])(implicit request: Request[_]): Future[Result] = {
-    Try(DataSecurity.decryptString(enc)) match {
-      case Success(result) => f(result)
-      case Failure(_)      =>
-        logger.error(s"[withJsonBody] - decryption failed")
-        withFutureJsonResponseBody(BAD_REQUEST, "Could not decrypt given url") { json =>
+  def withEncryptedUrl[T](enc: String)(f: T => Future[Result])(implicit request: Request[String], deObfuscation: DeObfuscator[T]): Future[Result] = {
+    deObfuscation.decrypt(enc).fold(
+      data => f(data),
+      err  => Try(Json.parse(err.message)).fold(
+        _ => withFutureJsonResponseBody(BAD_REQUEST, s"Couldn't decrypt request body on ${request.path}") { json =>
+          Future(BadRequest(json))
+        },
+        jsError => withFutureJsonResponseBody(BAD_REQUEST, jsError, "Decrypted json was missing a field") { json =>
           Future(BadRequest(json))
         }
-    }
-  }
-
-  def withEncryptedUrlIntoType[T](enc: String, reads: Reads[T])(f: T => Future[Result])(implicit request: Request[_]): Future[Result] = {
-    Try(DataSecurity.decryptIntoType[T](enc)(reads)) match {
-      case Success(jsResult) => jsResult match {
-        case JsSuccess(typeT,_) => f(typeT)
-        case JsError(errors)    =>
-          logger.error(s"Couldn't validate json as specified structure - ${Json.prettyPrint(JsError.toJson(errors))}")
-          withFutureJsonResponseBody(BAD_REQUEST, JsError.toJson(errors), "Couldn't validate json as specified structure") { json =>
-            Future(BadRequest(json))
-          }
-      }
-      case Failure(_) =>
-        logger.error(s"Couldn't decrypt request on ${request.path}")
-        withFutureJsonResponseBody(BAD_REQUEST, s"Couldn't decrypt request body on ${request.path}") { json =>
-          Future(BadRequest(json))
-        }
-    }
+      )
+    )
   }
 }

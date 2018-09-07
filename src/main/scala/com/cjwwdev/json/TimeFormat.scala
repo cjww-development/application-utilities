@@ -16,26 +16,29 @@
 
 package com.cjwwdev.json
 
-import java.time.LocalDateTime
+import java.time.{Instant, LocalDateTime, ZoneId}
 
 import org.joda.time.{DateTime, DateTimeZone}
 import play.api.libs.json._
 
 trait TimeFormat {
   implicit val dateTimeReadLDT: Reads[LocalDateTime] = Reads[LocalDateTime] {
-    _.\("$date").validate[String] fold(JsError(_), str => JsSuccess(LocalDateTime.parse(str)))
+    _.\("$date").validate[Long].fold(
+      JsError(_),
+      long => JsSuccess(LocalDateTime.ofInstant(Instant.ofEpochMilli(long), ZoneId.systemDefault))
+    )
   }
 
   implicit val dateTimeWriteLDT: Writes[LocalDateTime] = Writes[LocalDateTime] {
-    ldt => Json.obj("$date" -> ldt.toString)
+    date => Json.obj("$date" -> date.atZone(ZoneId.systemDefault).toInstant.toEpochMilli)
   }
 
-  @deprecated("User dateTimeReadLDT", "2018-05-31")
+  @deprecated("Use dateTimeReadLDT", "2018-05-31")
   implicit val dateTimeRead: Reads[DateTime] = (__ \ "$date").read[Long] map {
     new DateTime(_, DateTimeZone.UTC)
   }
 
-  @deprecated("User dateTimeWriteLDT", "2018-05-31")
+  @deprecated("Use dateTimeWriteLDT", "2018-05-31")
   implicit val dateTimeWrite: Writes[DateTime] = Writes[DateTime] {
     dateTime => Json.obj("$date" -> dateTime.getMillis)
   }

@@ -17,16 +17,22 @@
 package com.cjwwdev.config
 
 import javax.inject.Inject
-import play.api.Configuration
+import play.api.{ConfigLoader, Configuration}
 
 class DefaultConfigurationLoader @Inject()(val loadedConfig: Configuration) extends ConfigurationLoader
 
 trait ConfigurationLoader {
-  val loadedConfig: Configuration
+  protected val loadedConfig: Configuration
 
   private val configRoot = "microservice.external-services"
 
-  def buildServiceUrl(service: String): String  = loadedConfig.underlying.getString(s"$configRoot.$service.domain")
+  def get[T](key: String)(implicit configLoader: ConfigLoader[T]): T = configLoader.load(loadedConfig.underlying, key)
 
-  def getApplicationId(service: String): String = loadedConfig.underlying.getString(s"$configRoot.$service.application-id")
+  def getServiceUrl(service: String)(implicit configLoader: ConfigLoader[String]): String = {
+    configLoader.load(loadedConfig.underlying, s"$configRoot.$service.domain")
+  }
+
+  def getServiceId(service: String)(implicit configLoader: ConfigLoader[String]): String = {
+    configLoader.load(loadedConfig.underlying, s"$configRoot.$service.application-id")
+  }
 }

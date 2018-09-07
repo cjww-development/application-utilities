@@ -18,6 +18,7 @@ package com.cjwwdev.responses
 
 import org.scalatestplus.play.PlaySpec
 import play.api.libs.json.{JsString, JsValue, Json}
+import play.api.mvc.Request
 import play.api.mvc.Results.Ok
 import play.api.test.FakeRequest
 import play.api.test.Helpers._
@@ -28,7 +29,7 @@ import scala.concurrent.Future
 class ApiResponseSpec extends PlaySpec {
   object TestResponse extends ApiResponse
 
-  implicit val request = FakeRequest()
+  implicit val request: Request[_] = FakeRequest()
 
   "withJsonResponseBody" should {
     "construct and return a result with a successful json response body" in {

@@ -16,62 +16,81 @@
 
 package com.cjwwdev.implicits
 
+
+import java.time.LocalDateTime
+
+import com.cjwwdev.fixtures.TestModel
 import com.cjwwdev.implicits.ImplicitDataSecurity._
 import com.cjwwdev.implicits.ImplicitJsValues._
+import com.cjwwdev.security.deobfuscation.{DeObfuscation, DeObfuscator, DecryptionError}
+import com.cjwwdev.security.deobfuscation.DeObfuscation._
+import com.cjwwdev.security.obfuscation.{Obfuscation, Obfuscator}
+import com.cjwwdev.security.obfuscation.Obfuscation._
 import org.scalatestplus.play.PlaySpec
 import play.api.libs.json.{Json, OFormat}
 
 class ImplicitHandlersSpec extends PlaySpec {
 
-  case class TestModel(string: String, int: Int)
   implicit val format: OFormat[TestModel] = Json.format[TestModel]
 
+  implicit val testModelObfuscation: Obfuscator[TestModel] = new Obfuscator[TestModel] {
+    override def encrypt(value: TestModel): String = Obfuscation.obfuscateJson(Json.toJson(value))
+  }
+
+  implicit val testModelDeObfuscatiobn: DeObfuscator[TestModel] = new DeObfuscator[TestModel] {
+    override def decrypt(value: String): Either[TestModel, DecryptionError] = DeObfuscation.deObfuscate(value)
+  }
+
+  val now: LocalDateTime = LocalDateTime.now
+
   val testModel = TestModel(
-    string = "testString",
-    int    = 616
+    string   = "testString",
+    int      = 616,
+    dateTime = now
   )
 
-  "ImplicitDataSecurityHandlers" should {
+  "ImplicitObfuscation" should {
     "encrypt a string" in {
-      val result = "testString".encrypt
-      assert(result != "testString")
-    }
-
-    "decrypt a string" in {
-      val enc = "testString".encrypt
-      val result = enc.decrypt
-
+      val enc: String = "testString".encrypt
       assert(enc != "testString")
-      assert(result == "testString")
     }
 
-    "decrypt into a given type" in {
-      val enc = testModel.encryptType
-      val result = enc.decryptIntoType[TestModel]
-
+    "encrypt a TestModel" in {
+      val enc: String = testModel.encrypt
       enc.getClass mustBe classOf[String]
-      result mustBe testModel
-    }
-
-    "fail decryption into a given type" in {
-      val enc = testModel.encryptType
-
-      intercept[NoSuchElementException](enc.decryptIntoType[Int])
-    }
-
-    "encrypt a string using SHA512" in {
-      val enc = "testString".sha512
-
-      assert(enc != "testString")
-      enc.length mustBe 128
     }
   }
 
-  "ImplicitGenericTypeHandler" should {
-    "encrypt a given type" in {
-      val result = testModel.encryptType
-      result.getClass mustBe classOf[String]
-      assert(result != testModel.toString)
+  "ImplicitDeObfuscation" should {
+    "decrypt a string" in {
+      val enc: String = "testString".encrypt
+      val dec: Either[String, DecryptionError] = enc.decrypt[String]
+
+      dec mustBe Left("testString")
+    }
+
+    "decrypt a TestModel" in {
+      val enc: String = testModel.encrypt
+      val dec: Either[TestModel, DecryptionError] = enc.decrypt[TestModel]
+
+      dec mustBe Left(testModel)
+    }
+
+    "fail to decrypt a string" when {
+      "the wrong type has been supplied" in {
+        val enc: String = 616.encrypt
+        val dec: Either[String, DecryptionError] = enc.decrypt[String]
+
+        assert(dec.isRight)
+        dec.right.get.message
+      }
+    }
+  }
+
+  "ImplicitSHA512" should {
+    "encrypt a string" in {
+      val enc: String = "testString".sha512
+      enc.length mustBe 128
     }
   }
 

@@ -16,7 +16,7 @@
 
 package com.cjwwdev.json
 
-import java.time.LocalDateTime
+import java.time.{LocalDateTime, ZoneId}
 
 import org.scalatestplus.play.PlaySpec
 import play.api.libs.functional.syntax._
@@ -44,7 +44,7 @@ class TimeFormatSpec extends PlaySpec {
           |{
           |   "int" : 616,
           |   "ldt" : {
-          |       "$$date" : "${dateTime.toString}"
+          |       "$$date" : ${dateTime.atZone(ZoneId.systemDefault).toInstant.toEpochMilli}
           |   }
           |}
         """.stripMargin
@@ -61,7 +61,7 @@ class TimeFormatSpec extends PlaySpec {
           |{
           |   "int" : 616,
           |   "ldt" : {
-          |       "$$date" : "${dateTime.toString}"
+          |       "$$date" : ${dateTime.atZone(ZoneId.systemDefault).toInstant.toEpochMilli}
           |   }
           |}
         """.stripMargin
