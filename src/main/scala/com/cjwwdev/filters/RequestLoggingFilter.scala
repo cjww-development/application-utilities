@@ -32,7 +32,9 @@ class DefaultRequestLoggingFilter @Inject()(implicit val mat: Materializer) exte
 trait RequestLoggingFilter extends Filter with Logging {
   override def apply(f: RequestHeader => Future[Result])(rh: RequestHeader): Future[Result] = {
     val result = f(rh)
-    createLogMessage(result, rh, DateTimeUtils.currentTimeMillis()) map logger.info
+    log(result, rh, DateTimeUtils.currentTimeMillis()) collect {
+      case Some(msg) => logger.info(msg)
+    }
     result
   }
 
@@ -40,7 +42,13 @@ trait RequestLoggingFilter extends Filter with Logging {
 
   private def getElapsedTime(start: Long): Long = DateTimeUtils.currentTimeMillis - start
 
-  private def createLogMessage(result: Future[Result], rh: RequestHeader, start: Long): Future[String] = result map { res =>
-    s"${Colors.yellow(rh.method.capitalize)} request to ${Colors.green(rh.uri)} returned a ${Colors.cyan(res.header.status)} and took ${Colors.magenta(s"${getElapsedTime(start)}ms")}"
+  private def log(result: Future[Result], rh: RequestHeader, start: Long): Future[Option[String]] = {
+    result map { res =>
+      if (rh.path.contains("/assets/")) {
+        Some(s"${Colors.yellow(rh.method.capitalize)} request to ${Colors.green(rh.uri)} returned a ${Colors.cyan(res.header.status)} and took ${Colors.magenta(s"${getElapsedTime(start)}ms")}")
+      } else {
+        None
+      }
+    }
   }
 }
