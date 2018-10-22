@@ -42,13 +42,11 @@ trait RequestLoggingFilter extends Filter with Logging {
 
   private def getElapsedTime(start: Long): Long = DateTimeUtils.currentTimeMillis - start
 
-  private def log(result: Future[Result], rh: RequestHeader, start: Long): Future[Option[String]] = {
-    result map { res =>
-      if (rh.path.contains("/assets/")) {
-        Some(s"${Colors.yellow(rh.method.capitalize)} request to ${Colors.green(rh.uri)} returned a ${Colors.cyan(res.header.status)} and took ${Colors.magenta(s"${getElapsedTime(start)}ms")}")
-      } else {
-        None
-      }
+  private def log(result: Future[Result], rh: RequestHeader, start: Long): Future[Option[String]] = result map { res =>
+    if (!rh.path.contains("/assets/")) {
+      Some(s"${Colors.yellow(rh.method.capitalize)} request to ${Colors.green(rh.uri)} returned a ${Colors.cyan(res.header.status)} and took ${Colors.magenta(s"${getElapsedTime(start)}ms")}")
+    } else {
+      None
     }
   }
 }
