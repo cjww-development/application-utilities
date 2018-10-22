@@ -19,10 +19,12 @@ package com.cjwwdev.filters
 import akka.actor.ActorSystem
 import akka.stream.{ActorMaterializer, Materializer}
 import com.cjwwdev.testing.unit.UnitTestSpec
+import org.joda.time.DateTimeUtils
 import org.mockito.ArgumentMatchers
 import org.scalatest.mockito.MockitoSugar
-import org.mockito.Mockito.{times, verify, verifyZeroInteractions, reset}
+import org.mockito.Mockito.{reset, times, verify, verifyZeroInteractions}
 import org.slf4j.Logger
+import play.api.mvc.Result
 import play.api.mvc.Results.Ok
 import play.api.test.FakeRequest
 
@@ -30,56 +32,38 @@ import scala.concurrent.Future
 
 class RequestLoggingFilterSpec extends UnitTestSpec with MockitoSugar {
 
-  private def prepareMaterializer: ActorMaterializer = {
-    ActorMaterializer()(ActorSystem())
-  }
-
-  private val mockLogger = mock[Logger]
-
-  private val testFilter = new RequestLoggingFilter {
-    override implicit def mat: Materializer = prepareMaterializer
-    override val logger: Logger             = mockLogger
-  }
+  val elapsedTime: Long = 3L
 
   override def beforeAll(): Unit = {
     super.beforeAll()
     System.setProperty("sbt.log.noformat", "true")
   }
 
-  override def beforeEach(): Unit = {
-    super.beforeEach()
-    reset(mockLogger)
+  private def prepareMaterializer: ActorMaterializer = {
+    ActorMaterializer()(ActorSystem())
   }
 
-  override def afterEach(): Unit = {
-    super.afterEach()
-    reset(mockLogger)
+  private val testFilter = new RequestLoggingFilter {
+    override implicit def mat: Materializer = prepareMaterializer
   }
 
-  override def afterAll(): Unit = {
-    super.beforeAll()
-    System.setProperty("sbt.log.noformat", "false")
-  }
+  def futureAction: Future[Result] = Future(Ok("Test"))
 
-  "RequestLoggingFilter" should {
-    "log at info level if the request path isn't an asset route" in {
-      val request = FakeRequest("GET", "/test-route")
-      val testAction = Future(Ok("Test pass"))
+  "logRequest" should {
+    "return a string" when {
+      "the request path doesn't contain /assets/" in {
+        implicit val request = FakeRequest("GET", "/test-route")
 
-      val awaitedResult = await(testFilter.apply(_ => testAction)(request))
-
-      verify(mockLogger, times(1)).info(
-        ArgumentMatchers.matches("^GET request to /test-route returned a 200 and took [0-9][0-9]ms$")
-      )
+        testFilter.logRequest(200, elapsedTime, request) mustBe Some("GET request to /test-route returned a 200 and took 3ms")
+      }
     }
 
-    "log nothing if the route contains /assets/" in {
-      val request = FakeRequest("GET", "/test-route/assets/")
-      val testAction = Future(Ok("Test pass"))
+    "return none" when {
+      "the request path contains /assets/" in {
+        implicit val request = FakeRequest("GET", "/test-route/assets/")
 
-      val awaitedResult = await(testFilter.apply(_ => testAction)(request))
-
-      verifyZeroInteractions(mockLogger)
+        testFilter.logRequest(200, elapsedTime, request) mustBe None
+      }
     }
   }
 }

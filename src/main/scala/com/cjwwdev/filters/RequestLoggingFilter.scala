@@ -30,21 +30,22 @@ import scala.language.implicitConversions
 class DefaultRequestLoggingFilter @Inject()(implicit val mat: Materializer) extends RequestLoggingFilter
 
 trait RequestLoggingFilter extends Filter with Logging {
+
   override def apply(f: RequestHeader => Future[Result])(rh: RequestHeader): Future[Result] = {
     val result = f(rh)
-    log(result, rh, DateTimeUtils.currentTimeMillis()) collect {
-      case Some(msg) => logger.info(msg)
+    result map { res =>
+      logRequest(res.header.status, DateTimeUtils.currentTimeMillis, rh) foreach logger.info
+      res
     }
-    result
   }
 
-  private implicit def numberToString[T](number: T): String = number.toString
-
-  private def getElapsedTime(start: Long): Long = DateTimeUtils.currentTimeMillis - start
-
-  private def log(result: Future[Result], rh: RequestHeader, start: Long): Future[Option[String]] = result map { res =>
-    if (!rh.path.contains("/assets/")) {
-      Some(s"${Colors.yellow(rh.method.capitalize)} request to ${Colors.green(rh.uri)} returned a ${Colors.cyan(res.header.status)} and took ${Colors.magenta(s"${getElapsedTime(start)}ms")}")
+  def logRequest(status: Int, startTime: Long, rh: RequestHeader): Option[String] = {
+    if(!rh.path.contains("/assets/")) {
+      Some(
+        s"${Colors.yellow(rh.method.toUpperCase)} request to ${Colors.green(rh.path)} " +
+        s"returned a ${Colors.cyan(status.toString)} " +
+        s"and took ${Colors.magenta(startTime.toString)}ms"
+      )
     } else {
       None
     }
