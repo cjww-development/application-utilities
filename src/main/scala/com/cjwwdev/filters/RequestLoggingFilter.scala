@@ -32,9 +32,10 @@ class DefaultRequestLoggingFilter @Inject()(implicit val mat: Materializer) exte
 trait RequestLoggingFilter extends Filter with Logging {
 
   override def apply(f: RequestHeader => Future[Result])(rh: RequestHeader): Future[Result] = {
+    val startTime = DateTimeUtils.currentTimeMillis
     val result = f(rh)
     result map { res =>
-      logRequest(res.header.status, DateTimeUtils.currentTimeMillis, rh) foreach logger.info
+      logRequest(res.header.status, startTime, rh) foreach logger.info
       res
     }
   }
