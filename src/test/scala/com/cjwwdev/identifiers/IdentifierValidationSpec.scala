@@ -19,8 +19,8 @@ package com.cjwwdev.identifiers
 import java.util.UUID
 
 import org.scalatestplus.play.PlaySpec
-import play.api.mvc.{Request, Result}
 import play.api.mvc.Results.Ok
+import play.api.mvc.{Request, Result}
 import play.api.test.FakeRequest
 import play.api.test.Helpers._
 

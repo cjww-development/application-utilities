@@ -19,9 +19,9 @@ package com.cjwwdev.security.deobfuscation
 import java.time.LocalDateTime
 
 import com.cjwwdev.fixtures.TestModel
-import com.cjwwdev.security.obfuscation.{Obfuscation, Obfuscator}
-import com.cjwwdev.security.obfuscation.Obfuscation._
 import com.cjwwdev.security.deobfuscation.DeObfuscation._
+import com.cjwwdev.security.obfuscation.Obfuscation._
+import com.cjwwdev.security.obfuscation.{Obfuscation, Obfuscator}
 import org.scalatestplus.play.PlaySpec
 import play.api.libs.json.{Json, Reads}
 

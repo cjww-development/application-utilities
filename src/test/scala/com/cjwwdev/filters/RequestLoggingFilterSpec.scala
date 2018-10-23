@@ -20,10 +20,7 @@ import akka.actor.ActorSystem
 import akka.stream.{ActorMaterializer, Materializer}
 import com.cjwwdev.testing.unit.UnitTestSpec
 import org.joda.time.DateTimeUtils
-import org.mockito.ArgumentMatchers
 import org.scalatest.mockito.MockitoSugar
-import org.mockito.Mockito.{reset, times, verify, verifyZeroInteractions}
-import org.slf4j.Logger
 import play.api.mvc.Result
 import play.api.mvc.Results.Ok
 import play.api.test.FakeRequest

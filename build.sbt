@@ -27,7 +27,7 @@ val bTVersion : String = Try(ConfigFactory.load.getString("version")) match {
 val playImports: Seq[ModuleID] = Seq(guice)
 
 val dependencies: Seq[ModuleID] = Seq(
-  "com.typesafe.play" % "play_2.12"              % "2.6.18",
+  "com.typesafe.play" % "play_2.12"              % "2.6.20",
   "com.cjww-dev.libs" % "testing-framework_2.12" % "3.2.0",
   "ch.qos.logback"    % "logback-classic"        % "1.2.3"
 )
@@ -35,7 +35,7 @@ val dependencies: Seq[ModuleID] = Seq(
 lazy val library = Project(libraryName, file("."))
   .settings(
     version                              :=  bTVersion,
-    scalaVersion                         :=  "2.12.6",
+    scalaVersion                         :=  "2.12.7",
     organization                         :=  "com.cjww-dev.libs",
     resolvers                            ++= Seq(
       "Typesafe repository" at "http://repo.typesafe.com/typesafe/releases/",
