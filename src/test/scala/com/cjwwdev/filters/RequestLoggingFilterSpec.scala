@@ -32,7 +32,7 @@ import scala.concurrent.Future
 
 class RequestLoggingFilterSpec extends UnitTestSpec with MockitoSugar {
 
-  val elapsedTime: Long = 3L
+  val elapsedTime: Long = DateTimeUtils.currentTimeMillis - 3L
 
   override def beforeAll(): Unit = {
     super.beforeAll()
@@ -54,7 +54,7 @@ class RequestLoggingFilterSpec extends UnitTestSpec with MockitoSugar {
       "the request path doesn't contain /assets/" in {
         implicit val request = FakeRequest("GET", "/test-route")
 
-        testFilter.logRequest(200, elapsedTime, request) mustBe Some("GET request to /test-route returned a 200 and took 3ms")
+        assert(testFilter.logRequest(200, elapsedTime, request).get.contains("GET request to /test-route returned a 200 and took"))
       }
     }
 

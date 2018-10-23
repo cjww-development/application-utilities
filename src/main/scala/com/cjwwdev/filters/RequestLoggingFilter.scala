@@ -44,7 +44,7 @@ trait RequestLoggingFilter extends Filter with Logging {
       Some(
         s"${Colors.yellow(rh.method.toUpperCase)} request to ${Colors.green(rh.path)} " +
         s"returned a ${Colors.cyan(status.toString)} " +
-        s"and took ${Colors.magenta(startTime.toString)}ms"
+        s"and took ${Colors.magenta((DateTimeUtils.currentTimeMillis - startTime).toString)}ms"
       )
     } else {
       None
