@@ -18,7 +18,7 @@ package com.cjwwdev.identifiers
 
 import java.util.UUID
 
-import com.cjwwdev.logging.Logging
+import com.cjwwdev.logging.output.Logger
 import com.cjwwdev.responses.ApiResponse
 import play.api.http.Status.NOT_ACCEPTABLE
 import play.api.mvc.Results.NotAcceptable
@@ -28,7 +28,7 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 import scala.util.{Failure, Success, Try}
 
-trait IdentifierValidation extends Logging with ApiResponse {
+trait IdentifierValidation extends Logger with ApiResponse {
   val CONTEXT   = "context"
   val SESSION   = "session"
   val FEED_ITEM = "feed-item"
@@ -42,13 +42,13 @@ trait IdentifierValidation extends Logging with ApiResponse {
       Try(UUID.fromString(id.replace(s"$prefix-", ""))) match {
         case Success(_) => f
         case Failure(_) =>
-          logger.warn("[validateAs] - Given identifier was invalid")
+          LogAt.warn("[validateAs] - Given identifier was invalid")
           withFutureJsonResponseBody(NOT_ACCEPTABLE, s"$id is not a valid identifier") { json =>
             Future(NotAcceptable(json))
           }
       }
     } else {
-      logger.warn("[validateAs] - Couldn't validate the given identifier against the specified prefix")
+      LogAt.warn("[validateAs] - Couldn't validate the given identifier against the specified prefix")
       withFutureJsonResponseBody(NOT_ACCEPTABLE, s"Could not validate $id as a $prefix id") { json =>
         Future(NotAcceptable(json))
       }

@@ -45,4 +45,8 @@ object RequestBuilder {
   def buildRequest[T](requestHeader: RequestHeader, body: T)(implicit requestBuilder: RequestBuilder[T]): Request[T] = {
     requestBuilder.buildRequest(requestHeader, body)
   }
+
+  def buildEmptyRequest(requestHeader: RequestHeader)(implicit requestBuilder: RequestBuilder[String]): Request[String] = {
+    requestBuilder.buildRequest(requestHeader, "")
+  }
 }

@@ -29,6 +29,7 @@ val playImports: Seq[ModuleID] = Seq(guice)
 val dependencies: Seq[ModuleID] = Seq(
   "com.typesafe.play" % "play_2.12"              % "2.6.20",
   "com.cjww-dev.libs" % "testing-framework_2.12" % "3.2.0",
+  "com.cjww-dev.libs" % "logging-utils_2.12"     % "1.2.0",
   "ch.qos.logback"    % "logback-classic"        % "1.2.3"
 )
 
