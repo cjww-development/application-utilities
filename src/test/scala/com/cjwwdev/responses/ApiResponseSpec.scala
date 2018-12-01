@@ -30,14 +30,16 @@ class ApiResponseSpec extends PlaySpec {
   object TestResponse extends ApiResponse
 
   implicit val request: Request[_] = FakeRequest()
+    .withHeaders("requestId" -> "testRequestId")
 
   "withJsonResponseBody" should {
     "construct and return a result with a successful json response body" in {
       val result = contentAsJson(Future(TestResponse.withJsonResponseBody(OK, JsString("test"))(x => Ok(x))))
-      result.\("uri").as[String]    mustBe "/"
-      result.\("method").as[String] mustBe "GET"
-      result.\("status").as[Int]    mustBe OK
-      result.\("body").as[String]   mustBe "test"
+      result.\("uri").as[String]       mustBe "/"
+      result.\("method").as[String]    mustBe "GET"
+      result.\("status").as[Int]       mustBe OK
+      result.\("requestId").as[String] mustBe "testRequestId"
+      result.\("body").as[String]      mustBe "test"
     }
 
     "construct and return a result with a unsuccessful json response body" in {
@@ -45,6 +47,7 @@ class ApiResponseSpec extends PlaySpec {
       result.\("uri").as[String]          mustBe "/"
       result.\("method").as[String]       mustBe "GET"
       result.\("status").as[Int]          mustBe INTERNAL_SERVER_ERROR
+      result.\("requestId").as[String]    mustBe "testRequestId"
       result.\("errorMessage").as[String] mustBe "test"
     }
 
@@ -53,6 +56,7 @@ class ApiResponseSpec extends PlaySpec {
       result.\("uri").as[String]          mustBe "/"
       result.\("method").as[String]       mustBe "GET"
       result.\("status").as[Int]          mustBe BAD_REQUEST
+      result.\("requestId").as[String]    mustBe "testRequestId"
       result.\("errorMessage").as[String] mustBe "test"
       result.\("errorBody").as[JsValue]   mustBe Json.parse("""{ "reason" : "test" }""")
     }
@@ -61,10 +65,11 @@ class ApiResponseSpec extends PlaySpec {
   "withFutureJsonResponseBody" should {
     "construct and return a result with a successful json response body" in {
       val result = contentAsJson(TestResponse.withFutureJsonResponseBody(OK, JsString("test"))(x => Future(Ok(x))))
-      result.\("uri").as[String]    mustBe "/"
-      result.\("method").as[String] mustBe "GET"
-      result.\("status").as[Int]    mustBe OK
-      result.\("body").as[String]   mustBe "test"
+      result.\("uri").as[String]       mustBe "/"
+      result.\("method").as[String]    mustBe "GET"
+      result.\("status").as[Int]       mustBe OK
+      result.\("requestId").as[String] mustBe "testRequestId"
+      result.\("body").as[String]      mustBe "test"
     }
 
     "construct and return a result with a unsuccesful json response body" in {
@@ -72,6 +77,7 @@ class ApiResponseSpec extends PlaySpec {
       result.\("uri").as[String]          mustBe "/"
       result.\("method").as[String]       mustBe "GET"
       result.\("status").as[Int]          mustBe INTERNAL_SERVER_ERROR
+      result.\("requestId").as[String]    mustBe "testRequestId"
       result.\("errorMessage").as[String] mustBe "test"
     }
 
@@ -80,6 +86,7 @@ class ApiResponseSpec extends PlaySpec {
       result.\("uri").as[String]          mustBe "/"
       result.\("method").as[String]       mustBe "GET"
       result.\("status").as[Int]          mustBe BAD_REQUEST
+      result.\("requestId").as[String]    mustBe "testRequestId"
       result.\("errorMessage").as[String] mustBe "test"
       result.\("errorBody").as[JsValue]   mustBe Json.parse("""{ "reason" : "test" }""")
     }

@@ -16,7 +16,7 @@
 
 package com.cjwwdev.request
 
-import com.cjwwdev.logging.Logging
+import com.cjwwdev.logging.output.Logger
 import com.cjwwdev.responses.ApiResponse
 import com.cjwwdev.security.deobfuscation.DeObfuscator
 import play.api.http.Status.BAD_REQUEST
@@ -29,17 +29,23 @@ import scala.concurrent.Future
 import scala.language.reflectiveCalls
 import scala.util.Try
 
-trait RequestParsers extends ApiResponse with Logging {
+trait RequestParsers extends ApiResponse with Logger {
 
   def withJsonBody[T](f: T => Future[Result])(implicit request: Request[String], deObfuscation: DeObfuscator[T]): Future[Result] = {
     deObfuscation.decrypt(request.body).fold(
       data => f(data),
       err  => Try(Json.parse(err.message)).fold(
-        _ => withFutureJsonResponseBody(BAD_REQUEST, s"Couldn't decrypt request body on ${request.path}") { json =>
-          Future(BadRequest(json))
+        _ => {
+          LogAt.error(s"Couldn't decrypt request body on ${request.path}")
+          withFutureJsonResponseBody(BAD_REQUEST, s"Couldn't decrypt request body on ${request.path}") { json =>
+            Future(BadRequest(json))
+          }
         },
-        jsError => withFutureJsonResponseBody(BAD_REQUEST, jsError, "Decrypted json was missing a field") { json =>
-          Future(BadRequest(json))
+        jsError => {
+          LogAt.error(s"Decrypted json was missing a field => ${Json.prettyPrint(jsError)}")
+          withFutureJsonResponseBody(BAD_REQUEST, jsError, "Decrypted json was missing a field") { json =>
+            Future(BadRequest(json))
+          }
         }
       )
     )
@@ -49,11 +55,17 @@ trait RequestParsers extends ApiResponse with Logging {
     deObfuscation.decrypt(enc).fold(
       data => f(data),
       err  => Try(Json.parse(err.message)).fold(
-        _ => withFutureJsonResponseBody(BAD_REQUEST, s"Couldn't decrypt request body on ${request.path}") { json =>
-          Future(BadRequest(json))
+        _ => {
+          LogAt.error(s"Couldn't decrypt request url on ${request.path}")
+          withFutureJsonResponseBody(BAD_REQUEST, s"Couldn't decrypt request url on ${request.path}") { json =>
+            Future(BadRequest(json))
+          }
         },
-        jsError => withFutureJsonResponseBody(BAD_REQUEST, jsError, "Decrypted json was missing a field") { json =>
-          Future(BadRequest(json))
+        jsError => {
+          LogAt.error(s"Decrypted json was missing a field => ${Json.prettyPrint(jsError)}")
+          withFutureJsonResponseBody(BAD_REQUEST, jsError, "Decrypted json was missing a field") { json =>
+            Future(BadRequest(json))
+          }
         }
       )
     )

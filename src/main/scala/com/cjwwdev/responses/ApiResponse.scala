@@ -31,9 +31,10 @@ trait ApiResponse {
   }
 
   private def requestProperties(statusCode: Int)(implicit request: Request[_]): JsObject = Json.obj(
-    "uri"    -> s"${request.uri}",
-    "method" -> s"${request.method.toUpperCase}",
-    "status" -> statusCode
+    "uri"       -> s"${request.uri}",
+    "method"    -> s"${request.method.toUpperCase}",
+    "requestId" -> s"${request.headers.get("requestId").getOrElse("-")}",
+    "status"    -> statusCode
   )
 
   private def requestStats(implicit request: Request[_]): JsObject = Json.obj(

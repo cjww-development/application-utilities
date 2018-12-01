@@ -18,13 +18,14 @@ package com.cjwwdev.filters
 
 import java.util.Base64
 
-import com.cjwwdev.logging.Logging
+import com.cjwwdev.logging.output.Logger
+import com.cjwwdev.request.RequestBuilder._
 import play.api.mvc.Results.Redirect
 import play.api.mvc.{Call, Filter, RequestHeader, Result}
 
 import scala.concurrent.Future
 
-trait IpWhitelistFilter extends Filter with Logging {
+trait IpWhitelistFilter extends Filter with Logger {
   val enabled: Boolean
   val whitelistIps: String
   val excludedPaths: String
@@ -46,15 +47,16 @@ trait IpWhitelistFilter extends Filter with Logging {
   private def isAssetRoute(rh: RequestHeader): Boolean     = rh.uri contains s"$baseAppUri/assets/"
 
   override def apply(f: RequestHeader => Future[Result])(rh: RequestHeader): Future[Result] = {
+    implicit val req = buildEmptyRequest(rh)
     if(enabled) {
-      logger.info(s"Attempting to access ${rh.uri} whilst whitelist filter is active")
+      LogAt.info(s"Attempting to access ${rh.uri} whilst whitelist filter is active")
       if(uriIsWhitelisted(rh) | isAssetRoute(rh)) {
         f(rh)
       } else {
         rh.headers.get(ipHeader) match {
           case Some(ip) => if(whiteListSeq contains ip) f(rh) else Future.successful(Redirect(serviceOutage))
           case None     =>
-            logger.warn(s"[IPWhitelistFilter] - No X-Forwarded-For header present blocking request")
+            LogAt.warn(s"[IPWhitelistFilter] - No X-Forwarded-For header present blocking request")
             Future.successful(Redirect(serviceOutage))
         }
       }

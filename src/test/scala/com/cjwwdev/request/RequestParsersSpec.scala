@@ -113,7 +113,7 @@ class RequestParsersSpec extends PlaySpec with GuiceOneAppPerSuite {
         }
 
         status(result)                                     mustBe BAD_REQUEST
-        contentAsJson(result).\("errorMessage").as[String] mustBe s"Couldn't decrypt request body on ${request.path}"
+        contentAsJson(result).\("errorMessage").as[String] mustBe s"Couldn't decrypt request url on ${request.path}"
       }
 
       "the decrypted value is missing a field" in {
