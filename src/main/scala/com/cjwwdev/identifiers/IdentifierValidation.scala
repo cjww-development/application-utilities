@@ -24,7 +24,6 @@ import play.api.http.Status.NOT_ACCEPTABLE
 import play.api.mvc.Results.NotAcceptable
 import play.api.mvc.{Request, Result}
 
-import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 import scala.util.{Failure, Success, Try}
 
@@ -44,13 +43,13 @@ trait IdentifierValidation extends Logger with ApiResponse {
         case Failure(_) =>
           LogAt.warn("[validateAs] - Given identifier was invalid")
           withFutureJsonResponseBody(NOT_ACCEPTABLE, s"$id is not a valid identifier") { json =>
-            Future(NotAcceptable(json))
+            Future.successful(NotAcceptable(json))
           }
       }
     } else {
       LogAt.warn("[validateAs] - Couldn't validate the given identifier against the specified prefix")
       withFutureJsonResponseBody(NOT_ACCEPTABLE, s"Could not validate $id as a $prefix id") { json =>
-        Future(NotAcceptable(json))
+        Future.successful(NotAcceptable(json))
       }
     }
   }

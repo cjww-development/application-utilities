@@ -24,7 +24,6 @@ import play.api.mvc.Results.{InternalServerError, NotFound, Redirect, Status}
 import play.api.mvc.{Call, Request, RequestHeader, Result}
 import play.twirl.api.Html
 
-import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
 trait FrontendRequestErrorHandler extends HttpErrorHandler with Logger {
@@ -39,15 +38,15 @@ trait FrontendRequestErrorHandler extends HttpErrorHandler with Logger {
     implicit val req: Request[String] = buildRequest[String](request, "")
     LogAt.error(s"[ErrorHandler] - [onClientError] - Url: ${request.uri}, status code: $statusCode")
     statusCode match {
-      case NOT_FOUND  => Future(NotFound(notFoundView))
-      case FORBIDDEN  => Future(Redirect(loginRedirect))
-      case _          => Future(Status(statusCode)(standardErrorView))
+      case NOT_FOUND  => Future.successful(NotFound(notFoundView))
+      case FORBIDDEN  => Future.successful(Redirect(loginRedirect))
+      case _          => Future.successful(Status(statusCode)(standardErrorView))
     }
   }
 
   override def onServerError(request: RequestHeader, exception: Throwable): Future[Result] = {
     implicit val req: Request[String] = buildRequest[String](request, "")
     LogAt.error(s"[onServerError] - Server Error!", exception)
-    Future(InternalServerError(serverErrorView))
+    Future.successful(InternalServerError(serverErrorView))
   }
 }

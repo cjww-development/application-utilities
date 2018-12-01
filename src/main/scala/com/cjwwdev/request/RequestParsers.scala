@@ -24,7 +24,6 @@ import play.api.libs.json._
 import play.api.mvc.Results.BadRequest
 import play.api.mvc.{Request, Result}
 
-import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 import scala.language.reflectiveCalls
 import scala.util.Try
@@ -38,13 +37,13 @@ trait RequestParsers extends ApiResponse with Logger {
         _ => {
           LogAt.error(s"Couldn't decrypt request body on ${request.path}")
           withFutureJsonResponseBody(BAD_REQUEST, s"Couldn't decrypt request body on ${request.path}") { json =>
-            Future(BadRequest(json))
+            Future.successful(BadRequest(json))
           }
         },
         jsError => {
           LogAt.error(s"Decrypted json was missing a field => ${Json.prettyPrint(jsError)}")
           withFutureJsonResponseBody(BAD_REQUEST, jsError, "Decrypted json was missing a field") { json =>
-            Future(BadRequest(json))
+            Future.successful(BadRequest(json))
           }
         }
       )
@@ -58,13 +57,13 @@ trait RequestParsers extends ApiResponse with Logger {
         _ => {
           LogAt.error(s"Couldn't decrypt request url on ${request.path}")
           withFutureJsonResponseBody(BAD_REQUEST, s"Couldn't decrypt request url on ${request.path}") { json =>
-            Future(BadRequest(json))
+            Future.successful(BadRequest(json))
           }
         },
         jsError => {
           LogAt.error(s"Decrypted json was missing a field => ${Json.prettyPrint(jsError)}")
           withFutureJsonResponseBody(BAD_REQUEST, jsError, "Decrypted json was missing a field") { json =>
-            Future(BadRequest(json))
+            Future.successful(BadRequest(json))
           }
         }
       )
